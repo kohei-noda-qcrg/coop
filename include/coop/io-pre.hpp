@@ -1,4 +1,6 @@
 #pragma once
+#include <windows.h>
+
 #include "cohandle.hpp"
 
 namespace coop {
@@ -12,7 +14,7 @@ struct IOWaitResult {
 
 struct [[nodiscard]] IOAWaiter {
     Runner*      runner;
-    int          file;
+    SOCKET       file;
     bool         read;
     bool         write;
     IOWaitResult result;
@@ -21,7 +23,7 @@ struct [[nodiscard]] IOAWaiter {
     template <CoHandleLike CoHandle>
     auto await_suspend(CoHandle caller_task) -> void;
     auto await_resume() const -> IOWaitResult;
-    IOAWaiter(const int file, const bool read, const bool write);
+    IOAWaiter(const SOCKET file, const bool read, const bool write);
 };
 
 using wait_for_file = IOAWaiter;

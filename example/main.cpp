@@ -2,6 +2,8 @@
 #include <chrono>
 #include <source_location>
 
+#include <winsock2.h>
+
 #include <coop/event.hpp>
 #include <coop/generator.hpp>
 #include <coop/io.hpp>
@@ -10,7 +12,6 @@
 #include <coop/runner.hpp>
 #include <coop/thread.hpp>
 #include <coop/timer.hpp>
-#include <unistd.h>
 
 template <class... Args>
 struct line_print {
@@ -85,15 +86,15 @@ auto event_test_notifier(coop::Event& event) -> coop::Async<void> {
     event.notify();
 }
 
-auto io_test_reader(int fd) -> coop::Async<void> {
+auto io_test_reader(coop::SockPipe& pipe) -> coop::Async<void> {
     auto buf = std::array<char, 16>();
     while(true) {
-        const auto result = co_await coop::wait_for_file(fd, true, false);
+        const auto result = co_await coop::wait_for_file(pipe.fd, true, false);
         if(result.error || !result.read) {
             line_print("not read ready");
             continue;
         }
-        const auto len = read(fd, buf.data(), buf.size());
+        const auto len = pipe.read(buf.data(), buf.size());
         if(len <= 0) {
             line_print("read failed");
             continue;
@@ -106,13 +107,13 @@ auto io_test_reader(int fd) -> coop::Async<void> {
     }
 }
 
-auto io_test_writer(int fd) -> coop::Async<void> {
+auto io_test_writer(coop::SockPipe& pipe) -> coop::Async<void> {
     co_await delay_secs(1);
-    write(fd, "hello", 5);
+    pipe.write("hello", 5);
     co_await delay_secs(1);
-    write(fd, "world", 5);
+    pipe.write("world", 5);
     co_await delay_secs(1);
-    write(fd, "quit", 4);
+    pipe.write("quit", 4);
 }
 
 auto detach_test() -> coop::Async<void> {
@@ -167,6 +168,9 @@ auto os_thread_test() -> coop::Async<void> {
 }
 
 auto main() -> int {
+    auto wsadata = WSADATA();
+    WSAStartup(WINSOCK_VERSION, &wsadata);
+
     auto runner = coop::Runner();
 
     line_print("==== delay ====");
@@ -179,9 +183,8 @@ auto main() -> int {
     runner.run();
 
     line_print("==== io await ====");
-    auto fds = std::array<int, 2>();
-    pipe(fds.data());
-    runner.push_task(io_test_reader(fds[0]), io_test_writer(fds[1]));
+    auto pipe = coop::SockPipe();
+    runner.push_task(io_test_reader(pipe), io_test_writer(pipe));
     runner.run();
 
     line_print("==== detached task ====");

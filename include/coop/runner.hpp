@@ -4,7 +4,7 @@
 #include <thread>
 #include <vector>
 
-#include "poll.h"
+#include <winsock2.h>
 
 #include "event-pre.hpp"
 #include "io-pre.hpp"
@@ -208,7 +208,7 @@ inline auto Runner::event_notify(Event& event) -> void {
     event.waiters.clear();
 }
 
-inline auto Runner::io_wait(const int fd, const bool read, const bool write, IOWaitResult& result) -> void {
+inline auto Runner::io_wait(const SOCKET fd, const bool read, const bool write, IOWaitResult& result) -> void {
     // impl::debug("fd=", fd, " read=", read, " write=", write);
     current_task->suspend_reason.emplace<ByIO>(&result, fd, read, write);
 }
@@ -234,10 +234,10 @@ loop:
         // wait for io
         auto& pollfds = context.poll_fds;
         // impl::debug("poll start timeout=", timeout_ms);
-        const auto nfds = poll(pollfds.data(), pollfds.size(), timeout_ms + 1 /* +1 to correct rounding error */);
+        const auto nfds = WSAPoll(pollfds.data(), pollfds.size(), timeout_ms + 1 /* +1 to correct rounding error */);
         // impl::debug("poll done count=", nfds);
-        if(nfds < 0 && errno != EINTR) {
-            impl::error(__LINE__, " poll failed errno=", strerror(errno));
+        if(nfds == SOCKET_ERROR) {
+            impl::error(__LINE__, " poll failed errno=", WSAGetLastError());
             return;
         }
 

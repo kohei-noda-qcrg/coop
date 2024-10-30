@@ -5,6 +5,8 @@
 #include <span>
 #include <variant>
 
+#include <winsock2.h>
+
 #include "cohandle.hpp"
 #include "generator-pre.hpp"
 
@@ -25,7 +27,7 @@ struct ByEvent {
 
 struct ByIO {
     IOWaitResult* result;
-    int           file;
+    SOCKET        file;
     bool          read;
     bool          write;
 };
@@ -72,7 +74,7 @@ struct Runner {
     auto delay(std::chrono::system_clock::duration duration) -> void;
     auto event_wait(Event& event) -> void;
     auto event_notify(Event& event) -> void;
-    auto io_wait(int fd, bool read, bool write, IOWaitResult& result) -> void;
+    auto io_wait(SOCKET fd, bool read, bool write, IOWaitResult& result) -> void;
 
     // public
     template <CoGeneratorLike... Generators>

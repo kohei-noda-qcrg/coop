@@ -4,7 +4,7 @@
 namespace coop {
 template <class T>
 concept CoGeneratorLike = requires(T generator) {
-    CoHandleLike<decltype(generator.handle)>;
+    requires CoHandleLike<decltype(generator.handle)>;
 };
 
 template <class T>

@@ -17,7 +17,7 @@ inline auto IOAWaiter::await_resume() const -> IOWaitResult {
     return result;
 }
 
-inline IOAWaiter::IOAWaiter(const int file, const bool read, const bool write)
+inline IOAWaiter::IOAWaiter(const SOCKET file, const bool read, const bool write)
     : file(file),
       read(read),
       write(write) {}
